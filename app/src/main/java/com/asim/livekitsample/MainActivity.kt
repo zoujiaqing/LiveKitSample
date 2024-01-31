@@ -17,12 +17,16 @@ import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import io.livekit.android.LiveKit
+import io.livekit.android.RoomOptions
 import io.livekit.android.events.RoomEvent
 import io.livekit.android.events.collect
 import io.livekit.android.renderer.SurfaceViewRenderer
 import io.livekit.android.room.Room
+import io.livekit.android.room.participant.VideoTrackPublishOptions
 import io.livekit.android.room.track.LocalScreencastVideoTrack
+import io.livekit.android.room.track.LocalVideoTrackOptions
 import io.livekit.android.room.track.Track
+import io.livekit.android.room.track.VideoPreset169
 import io.livekit.android.room.track.VideoTrack
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -30,8 +34,10 @@ import kotlinx.coroutines.launch
 @RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : AppCompatActivity() {
 
+    // TODO add URL and Token for LiveKit
     private var liveKitUrl = ""
     private var liveKitToken = ""
+
     lateinit var room: Room
     private var screencastTrack: LocalScreencastVideoTrack? = null
 
@@ -46,7 +52,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Create Room object.
-        room = LiveKit.create(applicationContext)
+        room = LiveKit.create(applicationContext, options = RoomOptions(adaptiveStream = false))        // "adaptiveStream = false" is intentionally added to show good quality only
 
         // Setup the video renderer
         room.initVideoRenderer(findViewById<SurfaceViewRenderer>(R.id.renderer))
@@ -118,7 +124,17 @@ class MainActivity : AppCompatActivity() {
         val localParticipant = room.localParticipant
         GlobalScope.launch {
             screencastTrack = localParticipant.createScreencastTrack(name = "ScreenShare", mediaProjectionPermissionResultData = intentData)
-            localParticipant.publishVideoTrack(track = screencastTrack!!)
+
+            // TODO check device specs before sharing
+            //  VideoPreset169.H1080 is good for -> 4k screen with 16x9 aspect ratio
+            localParticipant.publishVideoTrack(
+                track = screencastTrack!!,
+                options = VideoTrackPublishOptions(
+                    simulcast = false,      // "simulcast = false" is intentionally added to show good quality only
+                    videoEncoding = VideoPreset169.H1080.encoding
+                )
+            )
+            screencastTrack!!.options = LocalVideoTrackOptions(captureParams = VideoPreset169.H1080.capture)
 
             // Must start the foreground prior to startCapture.
             screencastTrack!!.startForegroundService(null, null)
