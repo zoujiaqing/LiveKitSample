@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
 import android.graphics.Color
 import android.os.Build
 import android.os.IBinder
@@ -16,7 +17,7 @@ class ForegroundService : Service() {
 
     private var startedForeground = false
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.Q)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         createNotification()
         return START_NOT_STICKY
@@ -26,7 +27,7 @@ class ForegroundService : Service() {
         return null // not used.
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.Q)
     private fun createNotification() {
         if (!startedForeground) {
             val channelId = createNotificationChannel("com.asim.livekitsample", "backgroundService")
@@ -37,7 +38,7 @@ class ForegroundService : Service() {
                 .setPriority(NotificationCompat.PRIORITY_MIN)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .build()
-            startForeground(2, notification)
+            startForeground(2, notification, FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
             startedForeground = true
         }
     }
