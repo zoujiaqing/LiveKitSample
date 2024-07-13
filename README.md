@@ -1,7 +1,7 @@
 # LiveKit Android
 
 ## Introduction
-- Straight forward implementation of LiveKit SDK.<br>
+- Implementation of LiveKit SDK.<br>
 - Helpful comments added<br>
 - Details for setting up local server for generating tokens.
 
