@@ -39,10 +39,23 @@
             </intent-filter>
         </activity>
 
-        <!-- 声明 LockScreenActivity -->
-        <activity android:name=".LockScreenActivity"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
+        <service
+            android:name=".LockScreenService"
+            android:process=":lock_screen_process"
+            android:exported="false" />
+
+        <activity
+            android:name=".LockScreenActivity"
+            android:process=":lock_screen_process"
+            android:theme="@style/LockScreenTheme"
+            android:launchMode="singleInstance"
+            android:taskAffinity="com.asim.livekitsample"
             android:excludeFromRecents="true" />
+
+        <!-- 声明 LockScreenActivity -->
+<!--        <activity android:name=".LockScreenActivity"-->
+<!--            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"-->
+<!--            android:excludeFromRecents="true" />-->
     </application>
 
 </manifest>

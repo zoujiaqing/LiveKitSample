@@ -6,4 +6,9 @@
     </style>
 
     <style name="Theme.LiveKitSample" parent="Base.Theme.LiveKitSample" />
+
+    <style name="LockScreenTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
 </resources>

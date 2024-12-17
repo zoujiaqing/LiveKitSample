@@ -1,11 +1,14 @@
 package com.asim.livekitsample
 
 import android.app.Activity
+import android.app.ActivityOptions
 import android.content.Context
 import android.content.Intent
+import android.hardware.display.DisplayManager
 import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,6 +26,7 @@ import io.livekit.android.room.track.LocalVideoTrackOptions
 import io.livekit.android.room.track.VideoPreset169
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : AppCompatActivity() {
@@ -133,9 +137,8 @@ class MainActivity : AppCompatActivity() {
             screencastTrack!!.startForegroundService(null, null)
             screencastTrack!!.startCapture()
 
-            // 启动锁屏界面
-            val lockScreenIntent = Intent(this@MainActivity, LockScreenActivity::class.java)
-            startActivity(lockScreenIntent)
+            val serviceIntent = Intent(applicationContext, LockScreenService::class.java)
+            startService(serviceIntent)
         }
     }
 
