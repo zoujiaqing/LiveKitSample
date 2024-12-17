@@ -15,8 +15,10 @@ class LockScreenService : Service() {
         // 启动锁屏界面
         val displayManager = getSystemService(DISPLAY_SERVICE) as DisplayManager
         val displays = displayManager.displays
+        var displayId = 0
         for (display in displays) {
             Log.d("Display", "Display: ${display.displayId} - ${display.name}")
+//            displayId = display.displayId
         }
 
         // 确保启动在主显示器上
@@ -24,9 +26,10 @@ class LockScreenService : Service() {
 
         // 添加 FLAG_ACTIVITY_NEW_TASK 以在 Service 中启动 Activity
         lockScreenIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(0)
-        lockScreenIntent.addFlags(Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT)
+        val options = ActivityOptions.makeBasic().setLaunchDisplayId(displayId)
+//        lockScreenIntent.addFlags(Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT)
         Log.d("Display", "startActivity for LockScreenActivity")
+
         startActivity(lockScreenIntent, options.toBundle())
 
         return START_NOT_STICKY
