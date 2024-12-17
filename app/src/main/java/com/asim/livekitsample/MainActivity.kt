@@ -8,7 +8,10 @@ import android.hardware.display.DisplayManager
 import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
+import android.util.DisplayMetrics
 import android.util.Log
+import android.view.Display
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,6 +26,8 @@ import io.livekit.android.room.Room
 import io.livekit.android.room.participant.VideoTrackPublishOptions
 import io.livekit.android.room.track.LocalScreencastVideoTrack
 import io.livekit.android.room.track.LocalVideoTrackOptions
+import io.livekit.android.room.track.VideoCaptureParameter
+import io.livekit.android.room.track.VideoEncoding
 import io.livekit.android.room.track.VideoPreset169
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -117,21 +122,126 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // 获取屏幕分辨率（竖屏模式下宽度较小，高度较大）
+    fun getScreenResolution(context: Context): Pair<Int, Int> {
+        val metrics = DisplayMetrics()
+        val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        windowManager.defaultDisplay.getMetrics(metrics)
+
+        val width = metrics.widthPixels
+        val height = metrics.heightPixels
+
+        Log.d("MAIN", "Screen Resolution: " + width + "x" + height)
+        return Pair(width, height)
+    }
+
+    enum class VideoResolution(val value: Int) {
+        H240(240),
+        H480(480),
+        H720(720),
+        H1080(1080);
+    }
+
+    fun getCaptureParams(context: Context, videoResolution: VideoResolution, frameRate: Int): VideoCaptureParameter {
+        // 获取屏幕分辨率
+        val (screenWidth, screenHeight) = getScreenResolution(context)
+
+        // 根据 videoResolution 设置宽度
+        val captureWidth: Int
+        val captureHeight: Int
+
+        // 根据 videoResolution 计算捕获的宽度和高度
+        when (videoResolution) {
+            VideoResolution.H240 -> {
+                captureWidth = 240
+            }
+            VideoResolution.H480 -> {
+                captureWidth = 480
+            }
+            VideoResolution.H720 -> {
+                captureWidth = 720
+            }
+            VideoResolution.H1080 -> {
+                captureWidth = 1080
+            }
+        }
+
+        // 计算高度，保持宽高比
+        captureHeight = (captureWidth * screenHeight) / screenWidth
+
+        // 确保高度不超过设备屏幕的高度
+        val finalWidth = minOf(captureWidth, screenWidth)
+        val finalHeight = minOf(captureHeight, screenHeight)
+
+        // 设置帧率
+        val finalFrameRate = frameRate
+
+        // 返回自定义的 VideoCaptureParameter
+        return VideoCaptureParameter(finalWidth, finalHeight, finalFrameRate)
+    }
+
+    fun createCustomVideoEncoding(context: Context, videoResolution: VideoResolution, frameRate: Int): VideoEncoding {
+        // 获取屏幕分辨率
+        val (screenWidth, screenHeight) = getScreenResolution(context)
+
+        // 设置默认的视频捕获和编码参数
+        var captureWidth = screenWidth
+        var captureHeight = screenHeight
+        var bitrate = 1_700_000  // 默认比特率
+
+        // 根据传入的 videoResolution 设置捕获分辨率和比特率
+        when (videoResolution) {
+            VideoResolution.H240 -> {
+                captureWidth = 240
+                captureHeight = (captureWidth * screenHeight) / screenWidth
+                bitrate = 500_000  // 比较低的比特率
+            }
+            VideoResolution.H480 -> {
+                captureWidth = 480
+                captureHeight = (captureWidth * screenHeight) / screenWidth
+                bitrate = 1_000_000  // 较低的比特率
+            }
+            VideoResolution.H720 -> {
+                captureWidth = 720
+                captureHeight = (captureWidth * screenHeight) / screenWidth
+                bitrate = 1_700_000  // 较高的比特率
+            }
+            VideoResolution.H1080 -> {
+                captureWidth = 1080
+                captureHeight = (captureWidth * screenHeight) / screenWidth
+                bitrate = 3_000_000  // 较高的比特率
+            }
+        }
+
+        // 创建自定义的 VideoCaptureParameter
+        val videoCaptureParameter = VideoCaptureParameter(captureWidth, captureHeight, frameRate)
+
+        // 创建视频编码参数，根据分辨率和比特率来调整
+        val videoEncoding = VideoEncoding(bitrate, frameRate)
+
+        // 返回自定义的视频编码
+        return videoEncoding
+    }
+
     private fun startScreenCapture(intentData: Intent) {
         val localParticipant = room.localParticipant
         GlobalScope.launch {
             screencastTrack = localParticipant.createScreencastTrack(name = "ScreenShare", mediaProjectionPermissionResultData = intentData)
+
+            // 根据分辨率获取图像
+            val captureParams = getCaptureParams(applicationContext, VideoResolution.H480, 6)
 
             // TODO check device specs before sharing
             //  VideoPreset169.H1080 is good for -> 4k screen with 16x9 aspect ratio
             localParticipant.publishVideoTrack(
                 track = screencastTrack!!,
                 options = VideoTrackPublishOptions(
-                    simulcast = false,      // "simulcast = false" is intentionally added to show good quality only
-                    videoEncoding = VideoPreset169.H720.encoding
+                    simulcast = false,  // 设置为 false 使用高质量的视频流
+                    videoEncoding = createCustomVideoEncoding(applicationContext, VideoResolution.H480, 6)
                 )
             )
-            screencastTrack!!.options = LocalVideoTrackOptions(captureParams = VideoPreset169.H1080.capture)
+
+            screencastTrack!!.options = LocalVideoTrackOptions(captureParams = captureParams)
 
             // Must start the foreground prior to startCapture.
             screencastTrack!!.startForegroundService(null, null)
